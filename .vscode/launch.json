@@ -12,9 +12,14 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/oun/index.js",
+      "program": "${workspaceFolder}/out/cli.js",
+      "args": [
+        "mergeSourceMap",
+        "dest",
+        ".js.map"
+      ],
+      "preLaunchTask": "tsc: build - tsconfig.json",
       "sourceMaps": true
-      // "preLaunchTask": "tsc: build - tsconfig.json"
     }
   ]
 }

@@ -1,6 +1,6 @@
 version: "3"
 services:
-  ts-minifier:
+  minify-ts:
     image: dev-node
     build:
       cache_from:
@@ -9,7 +9,7 @@ services:
       args:
         NODE_VERSION: 16
     environment:
-      - PROJECT_PATH=ts-minifier
+      - PROJECT_PATH=minify-ts
       - INIT_FILE=init.sh
       - WAIT_SEC=2
       - TZ=
@@ -31,6 +31,6 @@ services:
         target: /root/.bash_aliases
         read_only: true
       - home:/home/user:delegated
-      - ../..:/opt/workspace/ts-minifier
+      - ../..:/opt/workspace/minify-ts
 volumes:
   home:

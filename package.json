@@ -1,6 +1,6 @@
 {
   "name": "minify-ts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A minifier based on typescript compiler to safely rename all of the variables, classes, functions, properties and methods to short.",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
@@ -8,30 +8,33 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "minify": "npx ts-node src/cli.ts minify -s -o ./src ./min index.ts cli.ts",
     "build": "tsc min/*.ts -t ES2015 -m commonjs --esModuleInterop --sourceMap -d --declarationMap --removeComments --outDir out",
-    "uglify": "cd lib && npx terser ../out/$npm_config_fn -o ./$npm_config_fn --source-map url=$npm_config_fn.map --keep-classnames --keep-fnames -m",
-    "uglify-all": "mkdir -p lib && npm run uglify --FN=index.js && npm run uglify --FN=cli.js",
-    "mergeSourceMap": "npx ts-node src/cli.ts mergeSourceMap ./lib .js.map",
-    "copyDeclarations": "cp ./out/index.d.ts ./lib",
-    "publish": "npm run minify && npm run build && npm run uglify-all && npm run mergeSourceMap && npm run copyDeclarations"
+    "uglify": "npx terser ./out/$npm_config_fn -o ./lib/$npm_config_fn --keep-classnames --keep-fnames -m",
+    "uglify-cli": "(echo '#!/usr/bin/env node' && npx terser ./out/cli.js --keep-classnames --keep-fnames -m) > lib/cli.js",
+    "uglify-all": "mkdir -p lib && npm run -q uglify --FN=index.js && npm run uglify-cli",
+    "copyDeclaration": "cp ./out/index.d.ts ./lib",
+    "publish": "npm run minify && npm run build && npm run uglify-all && npm run copyDeclaration",
+    "uglify-with-map": "cd lib && npx terser ../out/$npm_config_fn -o $npm_config_fn --source-map url=$npm_config_fn.map --keep-classnames --keep-fnames -m",
+    "uglify-map-all": "mkdir -p lib && npm run uglify-with-map --FN=index.js",
+    "mergeSourceMap": "npx ts-node src/cli.ts mergeSourceMap ./lib .js.map"
   },
   "bin": {
     "minify-ts": "./lib/cli.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/Foreverflying/minify-ts.git"
+    "url": "git+ssh://git@github.com/foreverflying/minify-ts.git"
   },
   "keywords": [
     "typescript",
-    "minifier",
+    "minify",
     "merge sourcemap"
   ],
   "author": "Andy Deng",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Foreverflying/minify-ts/issues"
+    "url": "https://github.com/foreverflying/minify-ts/issues"
   },
-  "homepage": "https://github.com/Foreverflying/minify-ts#readme",
+  "homepage": "https://github.com/foreverflying/minify-ts#readme",
   "dependencies": {
     "commander": "^9.3.0",
     "source-map": "^0.7.4",

@@ -65,7 +65,7 @@ Arguments:
 
 Options:
   -s --source-map  generate source files in the out-dir
-  -o --obfuscate   can change to different names if two same name variables doesnot
+  -o --obfuscate   can change to different names if two same name variables does not
                    have relations
   -h, --help       display help for command
 ```

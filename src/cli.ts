@@ -8,7 +8,7 @@ program.command('minify')
     .argument('<out-dir>', 'the output folder path')
     .argument('<interfaces...>', 'the interface files (relative path to src-dir)')
     .option('-s --source-map', 'generate source files in the out-dir')
-    .option('-o --obfuscate', 'can change to different names if two same name variables doesnot have relations')
+    .option('-o --obfuscate', 'can change to different names if two same name variables does not have relations')
     .action((srcDir: string, outDir: string, interfaces: string[], options: Record<string, boolean>) => {
         const cwd = process.cwd()
         const minifierOptions: MinifierOptions = {

@@ -16,9 +16,10 @@ program.command('minify')
             destDir: path.isAbsolute(outDir) ? path.normalize(outDir) : path.join(cwd, outDir),
             interfaceFileArr: interfaces,
             generateSourceMap: options.sourceMap,
+            obfuscate: options.obfuscate
         }
         const minifier = new Minifier(minifierOptions)
-        minifier.compileProject(options.obfuscate)
+        minifier.compileProject()
     })
 
 program.command('mergeSourceMap')

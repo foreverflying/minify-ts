@@ -48,14 +48,16 @@ export type MinifierOptions = {
     destDir: string
     interfaceFileArr: string[]
     generateSourceMap?: boolean
+    obfuscate?: boolean
 }
 
 export class Minifier {
     constructor(options: MinifierOptions) {
-        const { srcDir, destDir, interfaceFileArr, generateSourceMap } = options
+        const { srcDir, destDir, interfaceFileArr, generateSourceMap, obfuscate } = options
         this._srcRoot = path.normalize(srcDir + path.sep)
         this._destRoot = path.normalize(destDir + path.sep)
         this._generateSourceMap = !!generateSourceMap
+        this._obfuscate = !!obfuscate
         this._interfaceFileArr = interfaceFileArr.map(filePath => path.join(srcDir, filePath))
         this._interfaceFileSet = new Set<number>()
         this._exportEntryMap = new Map<string, number>()
@@ -70,7 +72,7 @@ export class Minifier {
         }
     }
 
-    compileProject(obfuscate = false, compilerOptions = defaultCompilerOptions) {
+    compileProject(compilerOptions = defaultCompilerOptions) {
         const servicesHost: ts.LanguageServiceHost = {
             getScriptFileNames: () => this._interfaceFileArr,
             getScriptVersion: () => '0',
@@ -94,7 +96,7 @@ export class Minifier {
         this.findIdentifiers(program)
         const contentArr = this._fileArr.map(fileName => program.getSourceFile(fileName)!.getFullText()!)
         this.findReferences(service, contentArr)
-        const renameArr = this.buildRenameArr(obfuscate)
+        const renameArr = this.buildRenameArr(this._obfuscate)
         this.generateDestFiles(renameArr, contentArr, program)
     }
 
@@ -158,11 +160,23 @@ export class Minifier {
         // console.log(`${'  '.repeat(layer)}${layer} - type: ${nodeTypeStr}, children: ${children.length}`)
         switch (node.kind) {
             case ts.SyntaxKind.InterfaceDeclaration:
-            case ts.SyntaxKind.TypeAliasDeclaration:
-            case ts.SyntaxKind.EnumDeclaration: {
-                const { name } = node as ts.InterfaceDeclaration | ts.TypeAliasDeclaration | ts.EnumDeclaration
+            case ts.SyntaxKind.TypeAliasDeclaration: {
+                const { name } = node as ts.InterfaceDeclaration | ts.TypeAliasDeclaration
                 const key = this.addDeclaration(name, fileIndex)
                 this.markFixedName(key)
+                break
+            }
+            case ts.SyntaxKind.EnumDeclaration:
+            case ts.SyntaxKind.EnumMember: {
+                const enumMemberNode = node as ts.EnumDeclaration | ts.EnumMember
+                if (enumMemberNode.name.kind === ts.SyntaxKind.Identifier) {
+                    const key = this.addDeclaration(enumMemberNode.name, fileIndex)
+                    if (node.kind === ts.SyntaxKind.EnumMember) {
+                        if (this.isNodeInExportEntryMap(enumMemberNode.parent, fileIndex)) {
+                            this.markFixedName(key)
+                        }
+                    }
+                }
                 break
             }
             case ts.SyntaxKind.ModuleDeclaration:
@@ -586,6 +600,7 @@ export class Minifier {
     private _interfaceFileArr: string[]
     private _interfaceFileSet: Set<number>
     private _generateSourceMap: boolean
+    private _obfuscate: boolean
     private _exportEntryMap: Map<string, number>
     private _fileArr: string[]
     private _decFileArr: string[]

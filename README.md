@@ -26,6 +26,28 @@ npm install -g minify-ts
 
 * Currently minify-ts does not support inline SourceMaps.
 
+* Make sure you are confident with your TypeScript - they shall be perfectly typed, no "any", be careful on the type converting code, had better manually check those parts. For example:
+    ```ts
+    class A {
+        public foo
+        private bar
+    }
+
+    const a = new A()
+
+    class B {
+        public foo
+        public bar
+    }
+
+    // you are trying to play tricks with the compiler, to access the private member of A
+    // however, the compiler will lose the trace of types
+    // as a result, the minify-ts might change these two "bar" to different names
+    // set the "obfuscate" option to false would help for this case
+    const b = a as unknown as B
+    console.log(b.bar)
+    ```
+
 * To avoid unexpected renaming, you need to ensure your code perfectly passed the tsc compiling, and all the declarations are with explicit types. For example:
     ```ts
     type Point = {
@@ -65,8 +87,8 @@ Arguments:
 
 Options:
   -s --source-map  generate source files in the out-dir
-  -o --obfuscate   can change to different names if two same name variables does not
-                   have relations
+  -o --obfuscate   can change to different names if two same name
+                   variables does not have relations
   -h, --help       display help for command
 ```
 
@@ -78,7 +100,8 @@ Merge all the relevent SourceMap files of files with specific extentions in a fo
 
 Arguments:
   out-dir         the output folder path
-  file-exts       the file extentions, like .js or .d.ts, also accept .map
+  file-exts       the file extentions, like .js or .d.ts, also
+                  accept .map
 
 Options:
   -r --recursive  loop through all sub directories
@@ -110,12 +133,12 @@ const options: MinifierOptions = {
     srcDir: '/absolute/path/to/src/folder',
     destDir: '/absolute/path/to/dest/folder',
     interfaceFileArr: ['relative/path/to/src/folder/file.ts'],
-    generateSourceMap: true,
+    generateSourceMap: true,    // optional, default is false
+    obfuscate: false,           // optional, default is false
 }
 
-const obfuscate = false
 const minifier = new Minifier(options)
-minifier.compileProject(obfuscate)
+minifier.compileProject()
 
 // use SourceMapMerger
 const recursive = true

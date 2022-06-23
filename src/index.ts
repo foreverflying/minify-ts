@@ -30,7 +30,13 @@ const renameCharStr = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTU
 const reservedWordStr = 'break,case,catch,class,const,continue,debugger,default,delete,do,else,enum,\
 export,extends,false,finally,for,function,if,import,in,istanceOf,new,null,return,super,switch,this,throw,\
 true,try,typeOf,var,void,while,with,as,implements,interface,let,package,private,protected,public,static,\
-any,boolean,constructor,declare,get,module,require,number,set,string,symbol,type,from,of'
+any,boolean,constructor,declare,get,module,require,number,set,string,symbol,type,from,of,\
+Infinity,NaN,undefined,global,globalThis,eval,uneval,isFinite,isNaN,parseFloat,parseInt,decodeURI,\
+decodeURIComponent,encodeURI,encodeURIComponent,Object,Function,Boolean,Symbol,Error,AggregateError,EvalError,\
+InternalError,RangeError,ReferenceError,SyntaxError,TypeError,URIError,Number,BigInt,Math,Date,String,RegExp,\
+Array,Int8Array,Uint8Array,Uint8ClampedArray,Int16Array,Uint16Array,Int32Array,Uint32Array,Float32Array,\
+Float64Array,BigInt64Array,BigUint64Array,Map,Set,WeakMap,WeakSet,ArrayBuffer,SharedArrayBuffer,Atomics,\
+DataView,JSON,Promise,Generator,GeneratorFunction,AsyncFunction,'
 
 const matchInString = (short: string, long: string, from: number) => {
     let i = 0
@@ -54,11 +60,12 @@ export type MinifierOptions = {
 export class Minifier {
     constructor(options: MinifierOptions) {
         const { srcDir, destDir, interfaceFileArr, generateSourceMap, obfuscate } = options
-        this._srcRoot = path.normalize(srcDir + path.sep)
-        this._destRoot = path.normalize(destDir + path.sep)
+        const cwd = process.cwd()
+        this._srcRoot = path.isAbsolute(srcDir) ? path.normalize(srcDir + '/') : path.join(cwd, srcDir, '/')
+        this._destRoot = path.isAbsolute(destDir) ? path.normalize(destDir + '/') : path.join(cwd, destDir, '/')
         this._generateSourceMap = !!generateSourceMap
         this._obfuscate = !!obfuscate
-        this._interfaceFileArr = interfaceFileArr.map(filePath => path.join(srcDir, filePath))
+        this._interfaceFileArr = interfaceFileArr.map(filePath => path.join(this._srcRoot, filePath))
         this._interfaceFileSet = new Set<number>()
         this._exportEntryMap = new Map<string, number>()
         this._fileArr = []
@@ -166,15 +173,19 @@ export class Minifier {
                 this.markFixedName(key)
                 break
             }
-            case ts.SyntaxKind.EnumDeclaration:
+            case ts.SyntaxKind.EnumDeclaration: {
+                const enumMemberNode = node as ts.EnumDeclaration
+                if (enumMemberNode.name.kind === ts.SyntaxKind.Identifier) {
+                    this.addDeclaration(enumMemberNode.name, fileIndex)
+                }
+                break
+            }
             case ts.SyntaxKind.EnumMember: {
-                const enumMemberNode = node as ts.EnumDeclaration | ts.EnumMember
+                const enumMemberNode = node as ts.EnumMember
                 if (enumMemberNode.name.kind === ts.SyntaxKind.Identifier) {
                     const key = this.addDeclaration(enumMemberNode.name, fileIndex)
-                    if (node.kind === ts.SyntaxKind.EnumMember) {
-                        if (this.isNodeInExportEntryMap(enumMemberNode.parent, fileIndex)) {
-                            this.markFixedName(key)
-                        }
+                    if (this.isNodeInExportEntryMap(enumMemberNode.parent, fileIndex)) {
+                        this.markFixedName(key)
                     }
                 }
                 break
@@ -200,16 +211,6 @@ export class Minifier {
                         }
                     }
                     if (this.isNodeInExportEntryMap(parent, fileIndex)) {
-                        this.markFixedName(key)
-                    }
-                }
-                break
-            }
-            case ts.SyntaxKind.EnumMember: {
-                const enumMemberNode = node as ts.EnumMember
-                if (enumMemberNode.name.kind === ts.SyntaxKind.Identifier) {
-                    const key = this.addDeclaration(enumMemberNode.name, fileIndex)
-                    if (this.isNodeInExportEntryMap(enumMemberNode.parent, fileIndex)) {
                         this.markFixedName(key)
                     }
                 }
@@ -551,7 +552,7 @@ export class Minifier {
                         generated: { line: line + 1, column: character - lineOffset },
                         original: { line: line + 1, column: character },
                         source: relativeSourcePath,
-                        name: name
+                        name: name,
                     }
                     lineOffset += name.length - changed.length
                     sourceMapGen.addMapping(mapping)
@@ -564,11 +565,11 @@ export class Minifier {
                     modified.push(buffer)
                 }
                 const prefix = content.endsWith(ts.sys.newLine) ? '//# ' : `${ts.sys.newLine}//# `
-                const sourceMapLink = `${prefix}sourceMappingURL=${filePath}.map`
+                const sourceMapLink = `${prefix}sourceMappingURL=${fileName}.map`
                 const sourceMapLinkBuffer = encoder.encode(sourceMapLink)
                 modified.push(sourceMapLinkBuffer)
-                const mapFile = fs.openSync(path.join(destDir, filePath + '.map'), 'w+')
-                const mapFileContent = JSON.stringify(sourceMapGen.toJSON())
+                const mapFile = fs.openSync(destFileName + '.map', 'w+')
+                const mapFileContent = sourceMapGen.toString()
                 fs.writeFileSync(mapFile, mapFileContent)
                 fs.closeSync(mapFile)
             } else {
@@ -680,7 +681,7 @@ export class SourceMapMerger {
         let content = decoder.decode(buffer)
         let sourceMapFilePath = file
         if (!file.endsWith('.map')) {
-            let matchArr = content.match(sourceMapLinkReg)
+            const matchArr = content.match(sourceMapLinkReg)
             if (!matchArr) {
                 return
             }
@@ -702,7 +703,7 @@ export class SourceMapMerger {
             filePath: sourceMapFilePath,
             original: original,
             resolved: resolved,
-            consumer: consumer
+            consumer: consumer,
         }
         _sourceMapTable.set(file, sourceMapNode)
         _sourceMapTable.set(sourceMapFilePath, sourceMapNode)

@@ -1,4 +1,6 @@
 # minify-ts
+[![minify-ts npm version](https://img.shields.io/npm/v/minify-ts.svg?style=popout&color=blue&label=minify-ts)](https://www.npmjs.com/package/minify-ts)
+
 A TypeScript minifier based on TypeScript compiler to safely rename all of the variables, classes, functions, properties and methods to short.
 
 It also provides a useful feature: merge the SourceMap files generated in several steps, and overwrite the last one with the merged one.

@@ -36,7 +36,8 @@ decodeURIComponent,encodeURI,encodeURIComponent,Object,Function,Boolean,Symbol,E
 InternalError,RangeError,ReferenceError,SyntaxError,TypeError,URIError,Number,BigInt,Math,Date,String,RegExp,\
 Array,Int8Array,Uint8Array,Uint8ClampedArray,Int16Array,Uint16Array,Int32Array,Uint32Array,Float32Array,\
 Float64Array,BigInt64Array,BigUint64Array,Map,Set,WeakMap,WeakSet,ArrayBuffer,SharedArrayBuffer,Atomics,\
-DataView,JSON,Promise,Generator,GeneratorFunction,AsyncFunction,'
+DataView,JSON,Promise,Generator,GeneratorFunction,AsyncFunction,__dirname,__filename,console,process,Buffer,\
+setImmediate,setInterval,setTimeout,clearImmediate,clearInterval,clearTimeout'
 
 const matchInString = (short: string, long: string, from: number) => {
     let i = 0
@@ -61,8 +62,9 @@ export class Minifier {
     constructor(options: MinifierOptions) {
         const { srcDir, destDir, interfaceFileArr, generateSourceMap, obfuscate } = options
         const cwd = process.cwd()
-        this._srcRoot = path.isAbsolute(srcDir) ? path.normalize(srcDir + '/') : path.join(cwd, srcDir, '/')
-        this._destRoot = path.isAbsolute(destDir) ? path.normalize(destDir + '/') : path.join(cwd, destDir, '/')
+        const sep = path.sep
+        this._srcRoot = path.isAbsolute(srcDir) ? path.normalize(srcDir + sep) : path.join(cwd, srcDir, sep)
+        this._destRoot = path.isAbsolute(destDir) ? path.normalize(destDir + sep) : path.join(cwd, destDir, sep)
         this._generateSourceMap = !!generateSourceMap
         this._obfuscate = !!obfuscate
         this._interfaceFileArr = interfaceFileArr.map(filePath => path.join(this._srcRoot, filePath))
@@ -161,9 +163,7 @@ export class Minifier {
 
     private visitNode(node: ts.Node, fileIndex: number, layer: number) {
         const children = node.getChildren()
-        // // eslint-disable-next-line @typescript-eslint/no-var-requires
-        // const { syntaxKindMap } = require('./syntaxKindMap')
-        // const nodeTypeStr = syntaxKindMap[node.kind]
+        // const nodeTypeStr = ts.SyntaxKind[node.kind]
         // console.log(`${'  '.repeat(layer)}${layer} - type: ${nodeTypeStr}, children: ${children.length}`)
         switch (node.kind) {
             case ts.SyntaxKind.InterfaceDeclaration:

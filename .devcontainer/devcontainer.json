@@ -17,20 +17,25 @@
   "remoteEnv": {
     "PATH": "${containerEnv:PATH}:~/.npm/bin"
   },
-  // Set *default* container specific settings.json values on container create.
-  "settings": {
-    "terminal.integrated.profiles.linux": {
-      "bash": {
-        "path": "/bin/bash"
-      }
+  "customizations": {
+    "vscode": {
+      // Set *default* container specific settings.json values on container create.
+      "settings": {
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash"
+          }
+        }
+      },
+      // Add the IDs of extensions you want installed when the container is created.
+      "extensions": [
+        "firsttris.vscode-jest-runner",
+        "yzhang.markdown-all-in-one",
+        "dbaeumer.vscode-eslint",
+        "uctakeoff.vscode-counter"
+      ]
     }
   },
-  // Add the IDs of extensions you want installed when the container is created.
-  "extensions": [
-    "dbaeumer.vscode-eslint",
-    "firsttris.vscode-jest-runner",
-    "uctakeoff.vscode-counter"
-  ],
   "forwardPorts": [],
   // Uncomment the next line if you want start specific services in your Docker Compose config.
   // "runServices": [],
@@ -39,6 +44,7 @@
   // Uncomment the next line to run commands after the container is created - for example installing git.
   // "postCreateCommand": "apt-get update && apt-get install -y git",
   "userEnvProbe": "interactiveShell",
+  "postStartCommand": "sh init.sh",
   // Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
-  "remoteUser": "user"
+  "remoteUser": "node"
 }

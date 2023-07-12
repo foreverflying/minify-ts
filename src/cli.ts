@@ -1,8 +1,8 @@
 import path from 'path'
 import { program } from 'commander'
-import { Minifier, MinifierOptions, SourceMapMerger } from './index'
+import { Minifier, MinifierOptions } from './index'
 
-program.command('minify')
+program
     .description('Minify all the files that used by the interface files.')
     .argument('<src-dir>', 'the source folder path')
     .argument('<out-dir>', 'the output folder path')
@@ -20,17 +20,6 @@ program.command('minify')
         }
         const minifier = new Minifier(minifierOptions)
         minifier.compileProject()
-    })
-
-program.command('mergeSourceMap')
-    .description('Merge all the relevent SourceMap files of files with specific extentions in a folder.')
-    .argument('<out-dir>', 'the output folder path')
-    .argument('<file-exts...>', 'the file extentions, like .js or .d.ts, also accept .map')
-    .option('-r --recursive', 'loop through all sub directories')
-    .action((outDir: string, fileExts: string[], options: Record<string, boolean>) => {
-        outDir = path.isAbsolute(outDir) ? path.normalize(outDir) : path.join(process.cwd(), outDir)
-        const merger = new SourceMapMerger()
-        return merger.merge(outDir, fileExts, options.recursive)
     })
 
 program.parse(process.argv)

@@ -7,7 +7,7 @@ services:
         - dev-node
       context: ../dev-node
       args:
-        NODE_VERSION: 20
+        NODE_VERSION: 20.4.0
     environment:
       - TZ=
     volumes:

@@ -1,6 +1,6 @@
 import path from 'path'
 import { program } from 'commander'
-import { Minifier, MinifierOptions } from './index'
+import { minify, MinifierOptions, writeDestFile } from './Minifier'
 
 program
     .description('Minify all the files that used by the interface files.')
@@ -18,8 +18,7 @@ program
             generateSourceMap: options.sourceMap,
             obfuscate: options.obfuscate
         }
-        const minifier = new Minifier(minifierOptions)
-        minifier.compileProject()
+        minify(minifierOptions, writeDestFile)
     })
 
 program.parse(process.argv)

@@ -105,7 +105,7 @@ minify-ts -s ./src ./dest exports/export1.ts exports/export2.ts
 
 # Usage
 ```ts
-import { Minifier, MinifierOptions, SourceMapMerger } from 'minify-ts'
+import { minify, MinifierOptions, writeDestFile } from 'minify-ts'
 
 const options: MinifierOptions = {
     srcDir: '/absolute/path/to/src/folder',
@@ -115,14 +115,15 @@ const options: MinifierOptions = {
     obfuscate: false,           // optional, default is false
 }
 
-const minifier = new Minifier(options)
-minifier.compileProject()
+minify(minifierOptions, writeDestFile)
 ```
 
 # Thanks to
 [source-map](https://github.com/mozilla/source-map)
 
 # TODO
+The exported namespace's exported members can not be recognised.
+
 Flatten the directory and change all file names to short.
 
 Detect all the implicit declarations and give Warnings or Errors.

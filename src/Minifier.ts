@@ -19,7 +19,7 @@ type RenameNode = {
 }
 
 // these minimum options are very important for the Minifier tracing the references correctly in the lib files
-const defaultCompilerOptions: ts.CompilerOptions = {
+const compilerOptions: ts.CompilerOptions = {
     target: ts.ScriptTarget.ES2020,
     module: ts.ModuleKind.CommonJS,
     esModuleInterop: true,
@@ -58,7 +58,31 @@ export type MinifierOptions = {
     obfuscate?: boolean
 }
 
-export class Minifier {
+export type FileCallback = (srcPath: string, destPath: string, content?: Uint8Array[], sourceMap?: string) => void
+
+export const writeDestFile: FileCallback = (srcPath, destPath, content, sourceMap) => {
+    const destDir = path.dirname(destPath)
+    fs.mkdirSync(destDir, { recursive: true })
+    if (content !== undefined) {
+        const dest = fs.openSync(destPath, 'w+')
+        fs.writevSync(dest, content)
+        fs.closeSync(dest)
+        if (sourceMap !== undefined) {
+            const destMap = fs.openSync(destPath + '.map', 'w+')
+            fs.writeFileSync(destMap, sourceMap)
+            fs.closeSync(destMap)
+        }
+    } else {
+        fs.copyFileSync(srcPath, destPath)
+    }
+}
+
+export const minify = (options: MinifierOptions, fileCallback: FileCallback) => {
+    const minifier = new Minifier(options)
+    minifier.compileProject(fileCallback)
+}
+
+class Minifier {
     constructor(options: MinifierOptions) {
         const { srcDir, destDir, interfaceFileArr, generateSourceMap, obfuscate } = options
         const cwd = process.cwd()
@@ -81,7 +105,7 @@ export class Minifier {
         }
     }
 
-    compileProject(compilerOptions = defaultCompilerOptions) {
+    compileProject(fileCallback: FileCallback) {
         const servicesHost: ts.LanguageServiceHost = {
             getScriptFileNames: () => this._interfaceFileArr,
             getScriptVersion: () => '0',
@@ -106,7 +130,7 @@ export class Minifier {
         const contentArr = this._fileArr.map(fileName => program.getSourceFile(fileName)!.getFullText()!)
         this.findReferences(service, contentArr)
         const renameArr = this.buildRenameArr(this._obfuscate)
-        this.generateDestFiles(renameArr, contentArr, program)
+        this.generateDestFiles(renameArr, contentArr, program, fileCallback)
     }
 
     private findIdentifiers(program: ts.Program) {
@@ -516,7 +540,12 @@ export class Minifier {
         }
     }
 
-    private generateDestFiles(renameArr: RenameNode[][], contentArr: string[], program: ts.Program) {
+    private generateDestFiles(
+        renameArr: RenameNode[][],
+        contentArr: string[],
+        program: ts.Program,
+        fileCallback: FileCallback,
+    ) {
         const encoder = new TextEncoder()
         const { _srcRoot, _destRoot, _fileArr, _decFileArr, _generateSourceMap } = this
         const srcDirNameLen = _srcRoot.length
@@ -527,7 +556,6 @@ export class Minifier {
             const dirName = path.dirname(filePath)
             const destFileName = path.join(_destRoot, filePath)
             const destDir = path.join(_destRoot, dirName)
-            fs.mkdirSync(destDir, { recursive: true })
             const content = contentArr[i]
             const modified: Uint8Array[] = []
             let from = 0
@@ -568,10 +596,8 @@ export class Minifier {
                 const sourceMapLink = `${prefix}sourceMappingURL=${fileName}.map`
                 const sourceMapLinkBuffer = encoder.encode(sourceMapLink)
                 modified.push(sourceMapLinkBuffer)
-                const mapFile = fs.openSync(destFileName + '.map', 'w+')
                 const mapFileContent = sourceMapGen.toString()
-                fs.writeFileSync(mapFile, mapFileContent)
-                fs.closeSync(mapFile)
+                fileCallback(srcFile, destFileName, modified, mapFileContent)
             } else {
                 for (const renameNode of fileRenameArr) {
                     const { pos, name, changedBuffer } = renameNode
@@ -583,16 +609,12 @@ export class Minifier {
                     const buffer = encoder.encode(content.substring(from))
                     modified.push(buffer)
                 }
+                fileCallback(srcFile, destFileName, modified)
             }
-            const dest = fs.openSync(destFileName, 'w+')
-            fs.writevSync(dest, modified)
-            fs.closeSync(dest)
         }
         for (const srcFileName of _decFileArr) {
             const destFileName = _destRoot + srcFileName.slice(srcDirNameLen)
-            const dirName = path.dirname(destFileName)
-            fs.mkdirSync(dirName, { recursive: true })
-            fs.copyFileSync(srcFileName, destFileName)
+            fileCallback(srcFileName, destFileName)
         }
     }
 

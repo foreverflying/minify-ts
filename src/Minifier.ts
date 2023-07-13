@@ -2,7 +2,7 @@
 import ts from 'typescript'
 import fs from 'fs'
 import path from 'path'
-import { Mapping, Position, RawSourceMap, SourceMapConsumer, SourceMapGenerator } from 'source-map'
+import { Mapping, SourceMapGenerator } from 'source-map'
 
 type RefNode = {
     refSet: Set<string>
@@ -20,7 +20,7 @@ type RenameNode = {
 
 // these minimum options are very important for the Minifier tracing the references correctly in the lib files
 const compilerOptions: ts.CompilerOptions = {
-    target: ts.ScriptTarget.ES2020,
+    target: ts.ScriptTarget.ESNext,
     module: ts.ModuleKind.CommonJS,
     esModuleInterop: true,
 }
@@ -100,6 +100,7 @@ class Minifier {
         this._refMap = new Map<string, RefNode>()
         this._nameTable = renameCharStr.split('')
         this._reservedWordSet = new Set<string>()
+        this._isInGlobalDeclaration = false
         for (const word of reservedWordStr.split(',')) {
             this._reservedWordSet.add(word)
         }
@@ -190,6 +191,31 @@ class Minifier {
         // const nodeTypeStr = ts.SyntaxKind[node.kind]
         // console.log(`${'  '.repeat(layer)}${layer} - type: ${nodeTypeStr}, children: ${children.length}`)
         switch (node.kind) {
+            case ts.SyntaxKind.ModuleDeclaration: {
+                const { name } = node as ts.ModuleDeclaration
+                const text = name.text
+                if (text === 'globalThis' || text === 'global' || text === 'window') {
+                    const key = this.addDeclaration(name as ts.Identifier, fileIndex)
+                    this.markFixedName(key)
+                    this._isInGlobalDeclaration = true
+                    for (const child of children) {
+                        this.visitNode(child, fileIndex, layer + 1)
+                    }
+                    this._isInGlobalDeclaration = false
+                    return
+                }
+            }
+            case ts.SyntaxKind.ClassDeclaration:
+            case ts.SyntaxKind.FunctionDeclaration: {
+                const { name } = node as ts.ModuleDeclaration | ts.ClassDeclaration | ts.FunctionDeclaration
+                if (name?.kind === ts.SyntaxKind.Identifier) {
+                    const key = this.addDeclaration(name, fileIndex)
+                    if (this.isNodeExported(node, fileIndex)) {
+                        this.markFixedName(key)
+                    }
+                }
+                break
+            }
             case ts.SyntaxKind.InterfaceDeclaration:
             case ts.SyntaxKind.TypeAliasDeclaration: {
                 const { name } = node as ts.InterfaceDeclaration | ts.TypeAliasDeclaration
@@ -198,9 +224,12 @@ class Minifier {
                 break
             }
             case ts.SyntaxKind.EnumDeclaration: {
-                const enumMemberNode = node as ts.EnumDeclaration
-                if (enumMemberNode.name.kind === ts.SyntaxKind.Identifier) {
-                    this.addDeclaration(enumMemberNode.name, fileIndex)
+                const enumNode = node as ts.EnumDeclaration
+                if (enumNode.name.kind === ts.SyntaxKind.Identifier) {
+                    const key = this.addDeclaration(enumNode.name, fileIndex)
+                    if (this.isNodeExported(enumNode, fileIndex)) {
+                        this.markFixedName(key)
+                    }
                 }
                 break
             }
@@ -208,33 +237,24 @@ class Minifier {
                 const enumMemberNode = node as ts.EnumMember
                 if (enumMemberNode.name.kind === ts.SyntaxKind.Identifier) {
                     const key = this.addDeclaration(enumMemberNode.name, fileIndex)
-                    if (this.isNodeInExportEntryMap(enumMemberNode.parent, fileIndex)) {
+                    if (this.isNodeExported(enumMemberNode.parent, fileIndex)) {
                         this.markFixedName(key)
                     }
                 }
                 break
             }
-            case ts.SyntaxKind.ModuleDeclaration:
-            case ts.SyntaxKind.ClassDeclaration:
-            case ts.SyntaxKind.FunctionDeclaration: {
-                const { name } = node as ts.ModuleDeclaration | ts.ClassDeclaration | ts.FunctionDeclaration
-                if (name?.kind === ts.SyntaxKind.Identifier) {
-                    this.addDeclaration(name, fileIndex)
-                }
-                break
-            }
             case ts.SyntaxKind.PropertySignature:
             case ts.SyntaxKind.MethodSignature: {
-                const signatureNode = node as ts.PropertySignature | ts.MethodSignature | ts.EnumMember
+                const signatureNode = node as ts.PropertySignature | ts.MethodSignature
                 if (signatureNode.name.kind === ts.SyntaxKind.Identifier) {
                     const key = this.addDeclaration(signatureNode.name, fileIndex, true)
-                    let parent = signatureNode.parent
+                    let parent: ts.Node = signatureNode.parent
                     if (parent.kind !== ts.SyntaxKind.InterfaceDeclaration) {
-                        while (parent.kind !== ts.SyntaxKind.TypeAliasDeclaration) {
+                        while (parent.kind !== ts.SyntaxKind.TypeAliasDeclaration && parent.kind !== ts.SyntaxKind.InterfaceDeclaration) {
                             parent = parent.parent
                         }
                     }
-                    if (this.isNodeInExportEntryMap(parent, fileIndex)) {
+                    if (this.isNodeExported(parent, fileIndex)) {
                         this.markFixedName(key)
                     }
                 }
@@ -245,7 +265,7 @@ class Minifier {
                 const memberNode = node as ts.PropertyDeclaration | ts.MethodDeclaration
                 if (memberNode.name.kind === ts.SyntaxKind.Identifier) {
                     const key = this.addDeclaration(memberNode.name, fileIndex)
-                    const isExported = this.isNodeInExportEntryMap(memberNode.parent, fileIndex)
+                    const isExported = this.isNodeExported(memberNode.parent, fileIndex)
                     const isPrivate = ts.getCombinedModifierFlags(memberNode) & ts.ModifierFlags.Private
                     if (!isPrivate && isExported) {
                         this.markFixedName(key)
@@ -263,20 +283,22 @@ class Minifier {
                         outerNode = outerNode.parent.parent
                     }
                     if (outerNode.kind === ts.SyntaxKind.VariableDeclaration) {
-                        if (this.isNodeInExportEntryMap(outerNode, fileIndex)) {
+                        if (this.isNodeExported(outerNode, fileIndex)) {
                             this.markFixedName(key)
                         }
                     }
                 }
                 break
             }
-            case ts.SyntaxKind.VariableDeclaration:
+            case ts.SyntaxKind.ImportSpecifier:
             case ts.SyntaxKind.BindingElement:
-            case ts.SyntaxKind.ImportSpecifier: {
-                const varNode = node as ts.VariableDeclaration | ts.BindingElement | ts.ImportSpecifier
+            case ts.SyntaxKind.VariableDeclaration: {
+                const varNode = node as ts.ImportSpecifier | ts.BindingElement | ts.VariableDeclaration
                 if (varNode.name.kind === ts.SyntaxKind.Identifier) {
                     const key = this.addDeclaration(varNode.name, fileIndex)
-                    if (this._interfaceFileSet.has(fileIndex)) {
+                    if (node.kind !== ts.SyntaxKind.ImportSpecifier && this.isNodeExported(node, fileIndex)) {
+                        this.markFixedName(key)
+                    } else if (this._interfaceFileSet.has(fileIndex)) {
                         if (ts.getCombinedModifierFlags(varNode) & ts.ModifierFlags.Export) {
                             this.markFixedName(key)
                         }
@@ -318,10 +340,71 @@ class Minifier {
         this._refMap.get(declareKey)!.isFixed = true
     }
 
-    private isNodeInExportEntryMap(node: ts.Node, fileIndex: number) {
-        const key = this.getKeyFromNode(node, fileIndex)
-        const kind = this._exportEntryMap.get(key)
-        return node.kind === kind
+    private isNodeExported(node: ts.Node, fileIndex: number) {
+        for (; ;) {
+            const key = this.getKeyFromNode(node, fileIndex)
+            const kind = this._exportEntryMap.get(key)
+            if (this._isInGlobalDeclaration || node.kind === kind) {
+                return true
+            }
+            switch (node.kind) {
+                case ts.SyntaxKind.ObjectLiteralExpression: {
+                    do {
+                        node = node.parent
+                    } while (node && node.kind !== ts.SyntaxKind.VariableDeclarationList)
+                    if (node) {
+                        node = node.parent
+                        break
+                    }
+                    return false
+                }
+                case ts.SyntaxKind.VariableDeclaration:
+                case ts.SyntaxKind.BindingElement: {
+                    do {
+                        node = node.parent
+                    }
+                    while (node.kind !== ts.SyntaxKind.VariableDeclarationList)
+                    node = node.parent
+                    break
+                }
+                case ts.SyntaxKind.TypeAliasDeclaration:
+                case ts.SyntaxKind.InterfaceDeclaration:
+                case ts.SyntaxKind.EnumDeclaration:
+                case ts.SyntaxKind.ModuleDeclaration:
+                case ts.SyntaxKind.ClassDeclaration:
+                case ts.SyntaxKind.FunctionDeclaration:
+                    break
+                default:
+                    throw new Error('Unexpected export check!')
+            }
+            let firstChild = node.getChildAt(0)
+            if (firstChild) {
+                firstChild = firstChild.getChildAt(0)
+                if (firstChild && firstChild.kind === ts.SyntaxKind.ExportKeyword) {
+                    const grandParent = node.parent.parent
+                    if (grandParent && grandParent.kind === ts.SyntaxKind.ModuleDeclaration) {
+                        node = grandParent
+                        continue
+                    }
+                    if (node.kind === ts.SyntaxKind.ModuleDeclaration && node.parent.kind === ts.SyntaxKind.SourceFile) {
+                        let target: ts.Node | undefined
+                        ts.forEachChild(node.parent, (child) => {
+                            if (child !== node) {
+                                const funcChild = child as ts.FunctionDeclaration
+                                if (funcChild.name && funcChild.name.text === (node as ts.ModuleDeclaration).name.text) {
+                                    target = child
+                                }
+                            }
+                        })
+                        if (target) {
+                            node = target
+                            continue
+                        }
+                    }
+                }
+            }
+            return false
+        }
     }
 
     private getKeyFromNode(node: ts.Node, fileIndex: number) {
@@ -631,4 +714,5 @@ class Minifier {
     private _refMap: Map<string, RefNode>
     private _nameTable: string[]
     private _reservedWordSet: Set<string>
+    private _isInGlobalDeclaration: boolean
 }

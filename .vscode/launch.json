@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "pwa-node",
+      "type": "node",
       "request": "launch",
       "name": "Launch Program",
       "smartStep": true,
@@ -14,9 +14,9 @@
       ],
       "program": "${workspaceFolder}/out/cli.js",
       "args": [
-        "mergeSourceMap",
-        "dest",
-        ".js.map"
+        "src",
+        "min",
+        "cli.ts",
       ],
       "preLaunchTask": "tsc: build - tsconfig.json",
       "sourceMaps": true

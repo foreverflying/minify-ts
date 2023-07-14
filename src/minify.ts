@@ -19,7 +19,7 @@ type RenameNode = {
 }
 
 // these minimum options are very important for the Minifier tracing the references correctly in the lib files
-const compilerOptions: ts.CompilerOptions = {
+const defaultCompilerOptions: ts.CompilerOptions = {
     target: ts.ScriptTarget.ESNext,
     module: ts.ModuleKind.CommonJS,
     esModuleInterop: true,
@@ -77,13 +77,13 @@ export const writeDestFile: FileCallback = (srcPath, destPath, content, sourceMa
     }
 }
 
-export const minify = (options: MinifierOptions, fileCallback: FileCallback) => {
-    const minifier = new Minifier(options)
+export const minify = (options: MinifierOptions, fileCallback: FileCallback, compilerOptions?: ts.CompilerOptions) => {
+    const minifier = new Minifier(options, compilerOptions)
     minifier.compileProject(fileCallback)
 }
 
 class Minifier {
-    constructor(options: MinifierOptions) {
+    constructor(options: MinifierOptions, compilerOptions?: ts.CompilerOptions) {
         const { srcDir, destDir, interfaceFileArr, generateSourceMap, obfuscate } = options
         const cwd = process.cwd()
         const sep = path.sep
@@ -100,6 +100,7 @@ class Minifier {
         this._refMap = new Map<string, RefNode>()
         this._nameTable = renameCharStr.split('')
         this._reservedWordSet = new Set<string>()
+        this._compilerOptions = compilerOptions || defaultCompilerOptions
         this._isInGlobalDeclaration = false
         for (const word of reservedWordStr.split(',')) {
             this._reservedWordSet.add(word)
@@ -117,7 +118,7 @@ class Minifier {
                 return ts.ScriptSnapshot.fromString(fs.readFileSync(fileName).toString())
             },
             getCurrentDirectory: () => process.cwd(),
-            getCompilationSettings: () => compilerOptions,
+            getCompilationSettings: () => this._compilerOptions,
             getDefaultLibFileName: ts.getDefaultLibFilePath,
             fileExists: ts.sys.fileExists,
             readFile: ts.sys.readFile,
@@ -164,7 +165,7 @@ class Minifier {
     private findExportsInFile(typeChecker: ts.TypeChecker, fileNode: ts.Node, fileIndex: number) {
         const { _exportEntryMap, _fileMap } = this
         const symbol = typeChecker.getSymbolAtLocation(fileNode)!
-        const exportsArr = typeChecker.getExportsOfModule(symbol)
+        const exportsArr = symbol ? typeChecker.getExportsOfModule(symbol) : []
         for (const entry of exportsArr) {
             const declarations = entry.getDeclarations()!
             let declareNode = declarations[0] as ts.NamedDeclaration
@@ -714,5 +715,6 @@ class Minifier {
     private _refMap: Map<string, RefNode>
     private _nameTable: string[]
     private _reservedWordSet: Set<string>
+    private _compilerOptions: ts.CompilerOptions
     private _isInGlobalDeclaration: boolean
 }

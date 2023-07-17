@@ -16,7 +16,7 @@
       "args": [
         "src",
         "min",
-        "cli.ts",
+        "index.ts",
       ],
       "preLaunchTask": "tsc: build - tsconfig.json",
       "sourceMaps": true

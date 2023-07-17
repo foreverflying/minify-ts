@@ -250,31 +250,27 @@ class Minifier {
                 if (signatureNode.name.kind === ts.SyntaxKind.Identifier) {
                     const key = this.addDeclaration(signatureNode.name, fileIndex, true)
                     let parent: ts.Node | undefined = signatureNode.parent
-                    if (parent.kind !== ts.SyntaxKind.InterfaceDeclaration) {
-                        if (parent.kind === ts.SyntaxKind.TypeLiteral) {
-                            do {
+                    do {
+                        switch (parent.kind) {
+                            case ts.SyntaxKind.TypeLiteral:
+                            case ts.SyntaxKind.ArrayType:
+                            case ts.SyntaxKind.TupleType:
+                            case ts.SyntaxKind.UnionType:
+                            case ts.SyntaxKind.IntersectionType:
+                            case ts.SyntaxKind.ParenthesizedType:
+                            case ts.SyntaxKind.ConditionalType:
                                 parent = parent.parent
-                                switch (parent.kind) {
-                                    case ts.SyntaxKind.TypeLiteral:
-                                    case ts.SyntaxKind.ArrayType:
-                                    case ts.SyntaxKind.TupleType:
-                                    case ts.SyntaxKind.UnionType:
-                                    case ts.SyntaxKind.IntersectionType:
-                                    case ts.SyntaxKind.ParenthesizedType:
-                                    case ts.SyntaxKind.ConditionalType:
-                                        continue
-                                    case ts.SyntaxKind.TypeAliasDeclaration:
-                                    case ts.SyntaxKind.InterfaceDeclaration:
-                                        if (this.isNodeExported(parent, fileIndex)) {
-                                            this.markFixedName(key)
-                                        }
-                                    default:
-                                        parent = undefined
-                                        break
+                                continue
+                            case ts.SyntaxKind.TypeAliasDeclaration:
+                            case ts.SyntaxKind.InterfaceDeclaration:
+                                if (this.isNodeExported(parent, fileIndex)) {
+                                    this.markFixedName(key)
                                 }
-                            } while (parent)
+                            default:
+                                parent = undefined
+                                break
                         }
-                    }
+                    } while (parent)
                 }
                 break
             }

@@ -1,6 +1,6 @@
 {
   "name": "minify-ts",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "A minifier based on typescript compiler to safely rename all of the variables, classes, functions, properties and methods to short.",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",

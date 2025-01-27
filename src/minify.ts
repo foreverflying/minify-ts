@@ -28,7 +28,7 @@ const defaultCompilerOptions: ts.CompilerOptions = {
 const renameCharStr = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$_'
 
 const reservedWordStr = 'break,case,catch,class,const,continue,debugger,default,delete,do,else,enum,\
-export,extends,false,finally,for,function,if,import,in,istanceOf,new,null,return,super,switch,this,throw,\
+export,extends,false,finally,for,function,get,if,import,in,istanceOf,new,null,return,super,switch,this,throw,\
 true,try,typeOf,var,void,while,with,as,implements,interface,let,package,private,protected,public,static,\
 any,boolean,constructor,declare,get,module,require,number,set,string,symbol,type,from,of,\
 Infinity,NaN,undefined,global,globalThis,eval,uneval,isFinite,isNaN,parseFloat,parseInt,decodeURI,\

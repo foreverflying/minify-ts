@@ -183,7 +183,7 @@ class Minifier {
     }
 
     private visitNode(helper: VisitHelper, node: ts.Node, fileIndex: number, layer: number) {
-        const { _interfaceFileSet, _identifierMap, _fileArr, _fileMap, _refMap } = this
+        const { _interfaceFileSet, _identifierMap, _fileArr } = this
         const { typeChecker, service, contentArr } = helper
         const children = node.getChildren()
         // const nodeTypeStr = ts.SyntaxKind[node.kind]
@@ -236,24 +236,13 @@ class Minifier {
                 return
             }
             if (!identifierRefNode) {
-                const name = node.text
-                let symbol = typeChecker.getSymbolAtLocation(node)
+                const symbol = typeChecker.getSymbolAtLocation(node)
                 if (symbol?.declarations?.length) {
-                    if (ts.isImportSpecifier(node.parent) || ts.isExportSpecifier(node.parent)) {
-                        if (symbol.flags & ts.SymbolFlags.Alias) {
-                            symbol = typeChecker.getImmediateAliasedSymbol(symbol)!
-                            if (symbol.declarations?.length) {
-                                const refNode = this.getRefNodeOfDeclaration(symbol.declarations[0])
-                                refNode.refSet.add(key)
-                            }
-                        }
-                        return
-                    }
                     let { declarations } = symbol
                     const { fileIndex, pos } = this.getFileAndPosFromKey(key)
                     const refArr = service.getReferencesAtPosition(_fileArr[fileIndex], pos)!
                     let refNode = this.getRefNodeOfDeclaration(declarations[0])
-                    this.linkReferencesToRefNode(refArr, refNode, contentArr)
+                    this.linkReferencesToRefNode(refArr, refNode, text, contentArr)
                     let i = 0
                     let last: RefNode | undefined = undefined
                     while (i < declarations.length) {
@@ -272,7 +261,7 @@ class Minifier {
                         if (isSignature) {
                             refNode.isSignature = true
                         }
-                        if (last) {
+                        if (last && last !== refNode) {
                             this.linkRefNodes(refNode, last)
                         }
                         last = refNode
@@ -281,7 +270,7 @@ class Minifier {
             } else if (ts.isShorthandPropertyAssignment(node.parent)) {
                 const { pos } = this.getFileAndPosFromKey(key)
                 const refArr = service.getReferencesAtPosition(_fileArr[fileIndex], pos)!
-                this.linkReferencesToRefNode(refArr, identifierRefNode, contentArr)
+                this.linkReferencesToRefNode(refArr, identifierRefNode, text, contentArr)
             }
         }
         for (const child of children) {
@@ -289,7 +278,7 @@ class Minifier {
         }
     }
 
-    private linkReferencesToRefNode(refArr: ts.ReferenceEntry[], refNode: RefNode, contentArr: string[]) {
+    private linkReferencesToRefNode(refArr: ts.ReferenceEntry[], refNode: RefNode, name: string, contentArr: string[]) {
         const { _identifierMap, _fileMap } = this
         for (const ref of refArr) {
             const { textSpan, fileName } = ref
@@ -297,7 +286,6 @@ class Minifier {
             if (refFileIndex >= 0) {
                 const { start, length } = textSpan
                 const fileText = contentArr[refFileIndex]
-                const { name } = refNode
                 if (length !== name.length || !matchInString(name, fileText, start)) {
                     continue
                 }
@@ -963,6 +951,10 @@ class Minifier {
                 node = (declaration as ts.ModuleDeclaration).name
                 break
             }
+            case SyntaxKind.NamespaceImport: {
+                node = (declaration as ts.NamespaceImport).name
+                break
+            }
             case SyntaxKind.Parameter: {
                 node = (declaration as ts.ParameterDeclaration).name
                 break
@@ -1008,6 +1000,7 @@ class Minifier {
                 isFixed: isFixed || fileIndex < 0 ? true : undefined,
             }
             _refMap.set(key, refNode)
+            _identifierMap.set(key, refNode)
         }
         return refNode
     }

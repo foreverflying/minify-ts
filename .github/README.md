@@ -118,14 +118,48 @@ const options: MinifierOptions = {
 minify(minifierOptions, writeDestFile)
 ```
 
+# Use as a transformer in ts-loader
+```js
+const { createMinifyTransformer } = require('minify-ts')
+
+module.exports = {
+    // ...
+    module: {
+        rules: [
+            {
+                test: /\.(ts|tsx)$/,
+                use: [
+                    {
+                        loader: 'ts-loader',
+                        options: {
+                            getCustomTransformers: (program) => ({
+                                before: [
+                                    createMinifyTransformer({
+                                        srcDir: '/absolute/path/to/src/folder',
+                                        interfaceFileArr: [
+                                            'relative/path/to/src/folder/file.ts',
+                                        ],
+                                        program,
+                                    }),
+                                ],
+                            }),
+                        },
+                    },
+                    // ...
+                ],
+                exclude: /node_modules/,
+            },
+        ],
+    },
+    // ...
+}
+
+```
+
 # Thanks to
 [source-map](https://github.com/mozilla/source-map)
 
 # TODO
-The exported namespace's exported members can not be recognised.
-
-Flatten the directory and change all file names to short.
-
 Detect all the implicit declarations and give Warnings or Errors.
 
 The minify implementation is based on TypeScript language service find references API, which makes it very slow, consider if there are better choices.

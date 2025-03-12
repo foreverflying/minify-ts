@@ -7,7 +7,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
+      "name": "Minify Self",
       "smartStep": true,
       "skipFiles": [
         "<node_internals>/**"
@@ -21,6 +21,18 @@
       ],
       "preLaunchTask": "tsc: build - tsconfig.json",
       "sourceMaps": true
-    }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Minify",
+      "smartStep": true,
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "program": "${workspaceFolder}/out/try/tryMinify.js",
+      "preLaunchTask": "tsc: build - tsconfig.json"
+    },
   ]
 }

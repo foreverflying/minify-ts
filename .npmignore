@@ -11,6 +11,7 @@
 init.sh
 publish.sh
 tsconfig.json
+eslint.config.mjs
 
 /build
 /docker

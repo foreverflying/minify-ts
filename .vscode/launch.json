@@ -15,8 +15,9 @@
       "program": "${workspaceFolder}/out/cli.js",
       "args": [
         "src",
-        "min",
+        "min/src",
         "index.ts",
+        "cli.ts"
       ],
       "preLaunchTask": "tsc: build - tsconfig.json",
       "sourceMaps": true

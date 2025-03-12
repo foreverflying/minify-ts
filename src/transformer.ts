@@ -1,12 +1,12 @@
 import path from 'path'
-import ts, { CustomTransformers, SyntaxKind } from 'typescript'
-import { MinifierOptions, minify } from './minify'
+import ts from 'typescript'
+import { MinifierOptions, minify, RenamedContent } from './minify'
 
 export interface MinifyTsOptions {
     srcDir: string
     interfaceFileArr: string[]
+    program?: ts.Program
     obfuscate?: boolean
-    compilerOptions?: ts.CompilerOptions
 }
 
 const decoder = new TextDecoder()
@@ -26,18 +26,15 @@ const getPosOfNode = (node: ts.Node) => {
     return node.pos + startPos
 }
 
-const fileCallback = (srcPath: string, _destPath: string, content?: Uint8Array[]) => {
+const fileCallback = (srcPath: string, _destPath: string, content?: RenamedContent) => {
     if (content) {
         const renameMap = new Map<number, string>()
         fileRenameMap!.set(srcPath, renameMap)
-        let pos = 0
-        for (let i = 0; i < content.length; i++) {
+        const { bufferArr, posArr } = content
+        for (let i = 0; i < bufferArr.length; i++) {
             if (i & 1) {
-                const text = decoder.decode(content[i])
-                renameMap.set(pos, text)
-                pos += text.length
-            } else {
-                pos += content[i].length
+                const text = decoder.decode(bufferArr[i])
+                renameMap.set(posArr[i], text)
             }
         }
     }
@@ -45,21 +42,20 @@ const fileCallback = (srcPath: string, _destPath: string, content?: Uint8Array[]
 
 export const createMinifyTransformer = (minifyTsOptions: MinifyTsOptions) => {
     return function minifyTransformer(context: ts.TransformationContext): ts.Transformer<ts.SourceFile> {
+        const compilerOptions = context.getCompilerOptions()
         const getVisitFunc = (sourceFile: ts.SourceFile, renameMap?: Map<number, string>) => {
             if (renameMap) {
-                const { createIdentifier } = ts.factory
-                let shift = 0
+                const { createIdentifier, updateExportDeclaration } = ts.factory
                 const visit = (node: ts.Node): ts.Node => {
-                    if (node.kind === SyntaxKind.Identifier) {
-                        const { text } = node as ts.Identifier
+                    if (ts.isIdentifier(node)) {
+                        const { text } = node
                         const pos = getPosOfNode(node)
-                        const newText = renameMap.get(pos - shift)
+                        const newText = renameMap.get(pos)
                         if (newText) {
-                            shift += text.length - newText.length
                             const identifier = createIdentifier(newText)
                             ts.setOriginalNode(identifier, node)
                             ts.setTextRange(identifier, node)
-                            // there are useless, until now typescript doesn't put names into sourcemaps
+                            // this is useless, until now typescript doesn't put names into sourcemaps
                             ts.setSourceMapRange(identifier, {
                                 pos: node.pos,
                                 end: node.end,
@@ -69,23 +65,23 @@ export const createMinifyTransformer = (minifyTsOptions: MinifyTsOptions) => {
                                     getLineAndCharacterOfPosition: sourceFile.getLineAndCharacterOfPosition,
                                 },
                             })
-                            return ts.visitEachChild(identifier, visit, context)
+                            return identifier
                         }
+                    } else if (ts.isExportDeclaration(node) && node.isTypeOnly && node.exportClause) {
+                        const { modifiers, exportClause, moduleSpecifier, attributes } = node
+                        return updateExportDeclaration(node, modifiers, false, exportClause, moduleSpecifier, attributes)
                     }
                     return ts.visitEachChild(node, visit, context)
                 }
                 return visit
             } else {
-                const visit = (node: ts.Node): ts.Node => {
-                    return ts.visitEachChild(node, visit, context)
-                }
-                return visit
+                return (node: ts.Node) => node
             }
         }
         return (node: ts.SourceFile): ts.SourceFile => {
             if (!fileRenameMap) {
                 fileRenameMap = new Map<string, Map<number, string>>()
-                const { srcDir, interfaceFileArr, obfuscate, compilerOptions } = minifyTsOptions
+                const { srcDir, interfaceFileArr, program, obfuscate } = minifyTsOptions
                 const cwd = process.cwd()
                 const srcFolder = path.isAbsolute(srcDir) ? path.normalize(srcDir) : path.join(cwd, srcDir)
                 const minifierOptions: MinifierOptions = {
@@ -93,17 +89,14 @@ export const createMinifyTransformer = (minifyTsOptions: MinifyTsOptions) => {
                     destDir: srcFolder,
                     interfaceFileArr,
                     obfuscate,
+                    program,
                 }
                 minify(minifierOptions, fileCallback, compilerOptions)
             }
-            const visit = getVisitFunc(node, fileRenameMap.get(node.fileName))
-            return ts.visitEachChild(node, visit, context)
+            const renameMap = fileRenameMap.get(node.fileName)
+            const visit = getVisitFunc(node, renameMap)
+            const result = ts.visitEachChild(node, visit, context)
+            return result
         }
-    }
-}
-
-export const createMinifyTransformers = (minifyTsOptions: MinifyTsOptions): CustomTransformers => {
-    return {
-        before: [createMinifyTransformer(minifyTsOptions)]
     }
 }

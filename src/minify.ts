@@ -727,7 +727,11 @@ class Minifier {
             }
         }
         const props = typeChecker.getPropertiesOfType(classType)
-        for (const prop of props) {
+        const classSymbol = typeChecker.getSymbolAtLocation(node.name!)!
+        const constructorType = typeChecker.getTypeOfSymbolAtLocation(classSymbol, node)
+        const staticProps = typeChecker.getPropertiesOfType(constructorType)
+        const allProps = props.concat(staticProps)
+        for (const prop of allProps) {
             const { declarations } = prop
             if (declarations?.length) {
                 for (const declaration of declarations) {

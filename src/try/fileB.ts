@@ -37,6 +37,12 @@ class ClassA implements ISome {
     age: number = 10
     hello?: IHello
 
+    static staticFunc1(p3: number, p4: number) {
+        this.some = p3 + p4
+    }
+
+    private static some?: number
+
     func1(p1: number, p2: string): void {
         this.func2(p1, p2)
         const age = p1

@@ -16,7 +16,7 @@ program
             destDir: path.isAbsolute(outDir) ? path.normalize(outDir) : path.join(cwd, outDir),
             interfaceFileArr: interfaces,
             generateSourceMap: options.sourceMap,
-            obfuscate: options.obfuscate
+            obfuscate: options.obfuscate,
         }
         minify(minifierOptions, writeDestFile)
     })

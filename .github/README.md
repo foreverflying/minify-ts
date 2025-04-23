@@ -5,9 +5,7 @@ A TypeScript minifier based on TypeScript compiler to safely rename all of the v
 
 ~~It also provides a useful feature: merge the SourceMap files generated in several steps, and overwrite the last one with the merged one.~~
 
-* Notice: the merge SourceMap feature is stripped out to another package:
-
-    `merge-source-map`
+* Notice: the merge SourceMap feature is stripped out to another package: [join-source-map](https://github.com/foreverflying/join-source-map)
 
 ## What problems do I aim to solve?
    Popular traditional minifiers are mostly based on JavaScript, as a result, they cannot get the information of types to decide whether a property name can be changed safely or not. So generally they just leave it unchanged, which stops them achieve the smaller minified size. In another hand, more people like to write code with classes in TypeScript, so more properties and methods are involved. Keeping their names unchanged will also affect another goal: protect your source code. The minify-ts uses TypeScript compiler to find out the safe way and smartly keeps the exports unchanged in your specified files: the exported variables, functions, classes and their public members.

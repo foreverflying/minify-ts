@@ -20,4 +20,3 @@ mkdir -p lib
 copy_declaration index.d.ts transformer.d.ts minify.d.ts
 uglify index.js transformer.js minify.js
 (echo '#!/usr/bin/env node' && npx terser ./min/out/cli.js) > lib/cli.js
-

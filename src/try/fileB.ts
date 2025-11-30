@@ -16,6 +16,12 @@ export {
     ISome,
 }
 
+export enum ClientConnState {
+    NotConnected = 0,
+    Connecting = 1,
+    Connected = 2,
+}
+
 type IHello = {
     readonly name: string
     readonly addr: string

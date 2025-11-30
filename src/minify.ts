@@ -344,7 +344,7 @@ class Minifier {
                     this.traceExportedType(typeChecker, type)
                 }
             }
-        } else if (ts.isClassDeclaration(node) || ts.isModuleDeclaration(node)) {
+        } else if (ts.isClassDeclaration(node) || ts.isModuleDeclaration(node) || ts.isEnumDeclaration(node)) {
             if (markNameExported) {
                 const refNode = this.getRefNodeOfDeclaration(node)
                 this.markRefNodeExported(refNode)
@@ -884,7 +884,8 @@ class Minifier {
             this.markRefNodeExported(refNode)
         }
         for (const member of node.members) {
-            this.traceExportedNode(typeChecker, member)
+            const refNode = this.getRefNodeOfDeclaration(member)
+            this.markRefNodeExported(refNode)
         }
     }
 

@@ -9,7 +9,7 @@ const minifierOptions: MinifierOptions = {
     interfaceFileArr: [
         'fileB.ts',
     ],
-    obfuscate: true,
+    // obfuscate: true,
 }
 
 const compilerOptions = ts.parseJsonSourceFileConfigFileContent(configFile, ts.sys, '/opt/workspace/minify-ts/')

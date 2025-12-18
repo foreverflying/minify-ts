@@ -1,5 +1,5 @@
 import { funcA as funcABC, varA } from './fileA'
-export { varA } from './fileA'
+export { varA, testFunc, TemplateFuncType, TestType2, testFunc1 } from './fileA'
 
 export const varB = 'world'
 
@@ -11,20 +11,6 @@ const yourAge = myAge
 export type TestType1<T extends { fieldC: string, fieldD: number }> = {
     propA: T
     propB: string
-}
-
-export type TemplateFuncType<T> = (p1: T, p2: string) => T[]
-
-export const testFunc: TemplateFuncType<{ fieldA: string, fieldB: number }> = (p1, p2) => {
-    return [p1]
-}
-
-export type TestType2 = TemplateFuncType<{ fieldC: string, fieldD: number }>
-
-export function testFunc1(
-    p1: TemplateFuncType<{ fieldE: string, fieldF: number }>,
-): TemplateFuncType<{ fieldG: string, fieldH: number }> {
-    throw null
 }
 
 const funcB = (word: string) => funcABC() + ' ' + varB + word

@@ -206,6 +206,14 @@ class Minifier {
                             if (symbol?.declarations?.length) {
                                 for (const declaration of symbol.declarations) {
                                     this.traceExportedStatement(typeChecker, declaration, false)
+                                    if (ts.isVariableDeclaration(declaration)) {
+                                        const typeNode = (declaration).type
+                                        if (typeNode && ts.isTypeReferenceNode(typeNode) && typeNode.typeArguments?.length) {
+                                            for (const argument of typeNode.typeArguments) {
+                                                this.traceExportedNode(typeChecker, argument)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1012,9 +1020,6 @@ class Minifier {
             }
             default:
                 throw new Error('Unknown declaration type: ' + SyntaxKind[declaration.kind])
-        }
-        if (node.getText() === 'testFunc1') {
-            console.log('here')
         }
         const { _fileMap, _identifierMap, _refMap } = this
         const { fileName } = declaration.getSourceFile()

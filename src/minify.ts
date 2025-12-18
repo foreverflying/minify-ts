@@ -342,6 +342,12 @@ class Minifier {
                     }
                     const type = typeChecker.getTypeAtLocation(declaration.name)
                     this.traceExportedType(typeChecker, type)
+                    const typeNode = declaration.type
+                    if (typeNode && ts.isTypeReferenceNode(typeNode) && typeNode.typeArguments?.length) {
+                        for (const argument of typeNode.typeArguments) {
+                            this.traceExportedNode(typeChecker, argument)
+                        }
+                    }
                 }
             }
         } else if (ts.isClassDeclaration(node) || ts.isModuleDeclaration(node) || ts.isEnumDeclaration(node)) {
@@ -801,6 +807,22 @@ class Minifier {
             const refNode = this.getRefNodeOfDeclaration(node)
             this.markRefNodeExported(refNode)
         }
+        const typeNode = node.type
+        if (typeNode && ts.isTypeReferenceNode(typeNode) && typeNode.typeArguments?.length) {
+            for (const argument of typeNode.typeArguments) {
+                this.traceExportedNode(typeChecker, argument)
+            }
+        }
+        if (node.parameters.length) {
+            for (const parameter of node.parameters) {
+                const paramTypeNode = parameter.type
+                if (paramTypeNode && ts.isTypeReferenceNode(paramTypeNode) && paramTypeNode.typeArguments?.length) {
+                    for (const argument of paramTypeNode.typeArguments) {
+                        this.traceExportedNode(typeChecker, argument)
+                    }
+                }
+            }
+        }
         if (node.typeParameters?.length) {
             for (const parameter of node.typeParameters) {
                 this.traceExportedNode(typeChecker, parameter)
@@ -990,6 +1012,9 @@ class Minifier {
             }
             default:
                 throw new Error('Unknown declaration type: ' + SyntaxKind[declaration.kind])
+        }
+        if (node.getText() === 'testFunc1') {
+            console.log('here')
         }
         const { _fileMap, _identifierMap, _refMap } = this
         const { fileName } = declaration.getSourceFile()

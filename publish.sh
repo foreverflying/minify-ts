@@ -14,6 +14,7 @@ copy_declaration() {
     done
 }
 
+rm -rf ./min/* ./lib/*
 npx ts-node src/cli.ts -o ./src ./min/src index.ts cli.ts
 cp tsconfig.json ./min && npx tsc -p ./min
 mkdir -p lib

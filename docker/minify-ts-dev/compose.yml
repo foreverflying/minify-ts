@@ -1,13 +1,6 @@
-version: "3"
 services:
   minify-ts:
-    image: dev-node
-    build:
-      cache_from:
-        - dev-node
-      context: ../dev-node
-      args:
-        NODE_VERSION: 23.9.0
+    image: dev-node:25.2.1
     environment:
       - TZ=
     volumes:

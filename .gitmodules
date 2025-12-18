@@ -1,3 +1,0 @@
-[submodule "docker/dev-node"]
-	path = docker/dev-node
-	url = git@github.com:foreverflying/dev-node.git

@@ -19,6 +19,8 @@ export function testFunc1(
     throw null
 }
 
+const $notWantToChangeName = 123
+
 const varAB = {
     name: 'hello',
     age: 10,

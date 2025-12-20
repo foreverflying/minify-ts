@@ -1129,8 +1129,8 @@ class Minifier {
             }
         }
         if (nameMap.size) {
-            for (const [, node] of nameMap) {
-                if (node.isFixed) {
+            for (const [name, node] of nameMap) {
+                if (node.isFixed || name[0] === '$') {
                     fixedNodeArr.push(node)
                 } else {
                     refNodeArr.push(node)

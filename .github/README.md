@@ -75,6 +75,8 @@ npm install -g minify-ts
     let end = start = point
     ```
 
+* The names that start with `$` will stay unchanged, can use this feature to protect the names that you do not hope to change.
+
 # Command line usage
 To show the usage: `minify-ts -h`
 ```

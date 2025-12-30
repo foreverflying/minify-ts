@@ -1,7 +1,7 @@
 import ts, { SyntaxKind } from 'typescript'
 import fs from 'fs'
 import path from 'path'
-import { Mapping, SourceMapGenerator } from 'source-map'
+import { type Mapping, SourceMapGenerator } from 'source-map'
 
 type VisitHelper = {
     typeChecker: ts.TypeChecker
@@ -244,7 +244,13 @@ class Minifier {
                 return
             }
             if (!identifierRefNode) {
-                const symbol = typeChecker.getSymbolAtLocation(node)
+                let symbol = typeChecker.getSymbolAtLocation(node)
+                if (symbol && (symbol.flags & ts.SymbolFlags.Alias)) {
+                    const aliasedSymbol = symbol ? typeChecker.getAliasedSymbol(symbol) : symbol
+                    if (aliasedSymbol !== symbol && aliasedSymbol.escapedName === symbol.escapedName) {
+                        symbol = aliasedSymbol
+                    }
+                }
                 if (symbol?.declarations?.length) {
                     let { declarations } = symbol
                     const { fileIndex, pos } = this.getFileAndPosFromKey(key)

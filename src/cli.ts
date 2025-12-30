@@ -1,6 +1,6 @@
 import path from 'path'
 import { program } from 'commander'
-import { minify, MinifierOptions, writeDestFile } from './minify'
+import { minify, type MinifierOptions, writeDestFile } from './minify'
 
 program
     .description('Minify all the files that used by the interface files.')

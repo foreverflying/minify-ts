@@ -3,6 +3,7 @@ export {
     varAB as varA,
     funcA,
     funcA as funcA1,
+    TestType4,
 }
 
 export type TemplateFuncType<T> = (p1: T, p2: string) => T[]
@@ -12,6 +13,8 @@ export const testFunc: TemplateFuncType<{ fieldA: string, fieldB: number }> = (p
 }
 
 export type TestType2 = TemplateFuncType<{ fieldC: string, fieldD: number }>
+
+type TestType4 = new () => TestType2
 
 export function testFunc1(
     p1: TemplateFuncType<{ fieldE: string, fieldF: number }>,

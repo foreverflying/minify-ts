@@ -1,5 +1,4 @@
 import { builtinModules, createRequire } from 'node:module'
-import { nodeResolve } from '@rollup/plugin-node-resolve'
 import terser from '@rollup/plugin-terser'
 
 const require = createRequire(import.meta.url)
@@ -27,7 +26,6 @@ export default {
     },
 
     plugins: [
-        nodeResolve({ preferBuiltins: true }),
         terser(),
     ],
 }

@@ -751,6 +751,19 @@ class Minifier {
         const constructorType = typeChecker.getTypeOfSymbolAtLocation(classSymbol, node)
         const staticProps = typeChecker.getPropertiesOfType(constructorType)
         const allProps = props.concat(staticProps)
+        const constructorSignatures = constructorType.getConstructSignatures()
+        for (const signature of constructorSignatures) {
+            const declaration = signature.getDeclaration()
+            if (declaration) {
+                if (ts.canHaveModifiers(declaration)) {
+                    const modifiers = ts.getModifiers(declaration)
+                    if (modifiers?.some((modifier) => modifier.kind === SyntaxKind.PrivateKeyword)) {
+                        continue
+                    }
+                }
+                this.traceExportedFunctionParts(typeChecker, signature.getParameters(), undefined)
+            }
+        }
         for (const prop of allProps) {
             const { declarations } = prop
             if (declarations?.length) {

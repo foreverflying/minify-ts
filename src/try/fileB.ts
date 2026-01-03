@@ -1,5 +1,5 @@
 import { funcA as funcABC, varA } from './fileA'
-export { varA, testFunc, TemplateFuncType, TestType2, testFunc1 } from './fileA'
+export { varA, testFunc, TestClassA, TemplateFuncType, TestType2, testFunc1 } from './fileA'
 
 export const varB = 'world'
 

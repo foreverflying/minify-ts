@@ -6,6 +6,19 @@ export {
     TestType4,
 }
 
+export class TestClassA<T> {
+    fieldA: T
+
+    private constructor(param: T) {
+        this.fieldA = param
+    }
+
+    setFieldA(value: T): T {
+        this.fieldA = value
+        return this.fieldA
+    }
+}
+
 export type TemplateFuncType<T> = (p1: T, p2: string) => T[]
 
 export const testFunc: TemplateFuncType<{ fieldA: string, fieldB: number }> = (p1, p2) => {
